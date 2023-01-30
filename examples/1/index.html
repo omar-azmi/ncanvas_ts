@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
+	<script src="./index.ts" type="module"></script>
+	<link rel="stylesheet" href="./style.css" type="text/css">
+	<div id="canvas-div" class="checker-background"></div>
+</head>
+
+<body>
+	<div class="display-grid">
+		<div class="canvas-container">
+			<canvas id="canvas"></canvas>
+		</div>
+
+		<div class="form-group controls columns">
+			<label class="form-label col-8 col-mx-auto col-sm-auto">Mouse</label>
+			<label class="form-radio col-8 col-mx-auto col-sm-auto"><input type="radio" name="mouse-action" checked
+					onclick="if(this.checked) {pointerTypeHandlingMap.mouse = DRAGGING}"><i
+					class="form-icon"></i>drag</label>
+			<label class="form-radio col-8 col-mx-auto col-sm-auto"><input type="radio" name="mouse-action"
+					onclick="if(this.checked) {pointerTypeHandlingMap.mouse = PAINTING}"><i
+					class="form-icon"></i>draw</label>
+
+			<label class="form-label col-8 col-mx-auto col-sm-auto">Touch</label>
+			<label class="form-radio col-8 col-mx-auto col-sm-auto"><input type="radio" name="touch-action" checked
+					onclick="if(this.checked) {pointerTypeHandlingMap.touch = DRAGGING}"><i
+					class="form-icon"></i>drag</label>
+			<label class="form-radio col-8 col-mx-auto col-sm-auto"><input type="radio" name="touch-action"
+					onclick="if(this.checked) {pointerTypeHandlingMap.touch = PAINTING}"><i
+					class="form-icon"></i>draw</label>
+
+			<label class="form-label col-8 col-mx-auto col-sm-auto">Pen</label>
+			<label class="form-radio col-8 col-mx-auto col-sm-auto"><input type="radio" name="pen-action"
+					onclick="if(this.checked) {pointerTypeHandlingMap.pen = DRAGGING}"><i
+					class="form-icon"></i>drag</label>
+			<label class="form-radio col-8 col-mx-auto col-sm-auto"><input type="radio" name="pen-action" checked
+					onclick="if(this.checked) {pointerTypeHandlingMap.pen = PAINTING}"><i
+					class="form-icon"></i>draw</label>
+		</div>
+
+	</div>
+
+	<div class="columns col-oneline bg-dark col-8 col-xl-10 col-lg-12 col-mx-auto">
+		<span class="label col-auto">
+			pointer (x,y) =
+			<span id="pointer-x" class="label label-rounded label-primary">0</span>
+			<span id="pointer-y" class="label label-rounded label-primary">0</span>
+		</span>
+		<span class="label col-auto">
+			global (x,y) =
+			<span id="pointer-global-x" class="label label-rounded label-success">0</span>
+			<span id="pointer-global-y" class="label label-rounded label-success">0</span>
+		</span>
+	</div>
+</body>

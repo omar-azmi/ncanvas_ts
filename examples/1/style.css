@@ -1,0 +1,55 @@
+@import url("https://unpkg.com/spectre.css/dist/spectre.min.css");
+@import url("https://unpkg.com/spectre.css/dist/spectre-exp.min.css");
+@import url("https://unpkg.com/spectre.css/dist/spectre-icons.min.css");
+
+#canvas {
+	width: 100%;
+	height: 100%;
+	background: #222;
+	/*touch-action: none;*/
+	/*this is necessary, but we'll apply it via js*/
+}
+
+.canvas-container {
+	grid-area: canvas;
+}
+
+.controls {
+	grid-area: controls;
+}
+
+.display-grid {
+	user-select: none;
+	display: grid;
+	gap: 0px 0px;
+	width: 100vw;
+	overflow: hidden;
+	grid-template-columns: 2fr 10fr;
+	grid-template-rows: 100vh;
+	grid-template-areas:
+		"controls canvas";
+}
+
+@media (max-width: 600px) {
+	.display-grid {
+		height: 100vh;
+		grid-template-columns: 100vw;
+		grid-template-rows: min-content 1fr;
+		grid-template-areas:
+			"controls"
+			"canvas";
+	}
+
+	.controls {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+	}
+}
+
+
+.label>.label-rounded {
+	width: 4rem;
+	overflow-x: hidden;
+	text-overflow: clip;
+	vertical-align: bottom;
+}
