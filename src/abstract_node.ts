@@ -124,10 +124,10 @@ export abstract class AbstractNode {
 			this.itransform = original_tr.multiply(getInTransform(this.irect, this.orect))
 			// this.temp.dirty = false
 		}
-		this.drawSelf()
+		this.drawSelf(ctx)
 		if (this.temp.debug) drawDebug(this)
-		this.drawChildren()
-		this.drawOverlay()
+		this.drawChildren(ctx)
+		this.drawOverlay(ctx)
 		ctx.setTransform(original_tr)
 		this.temp.ctx = undefined
 	}
@@ -136,9 +136,9 @@ export abstract class AbstractNode {
 	abstract drawSelf(ctx?: Ctx2D): void
 
 	drawChildren(ctx?: Ctx2D): void {
-		ctx = ctx || this.temp.ctx!
+		ctx ??= this.temp.ctx!
 		for (const child of this.children) {
-			this.goIn()
+			this.goIn(ctx)
 			child.draw(ctx, this)
 		}
 	}
@@ -148,19 +148,19 @@ export abstract class AbstractNode {
 
 	/** go to outer `orect` coordinates */
 	goOut(ctx?: Ctx2D): void {
-		ctx = ctx || this.temp.ctx!
+		ctx ??= this.temp.ctx!
 		ctx.setTransform(this.otransform)
 	}
 
 	/** go to innrer `irect` coordinates */
 	goIn(ctx?: Ctx2D): void {
-		ctx = ctx || this.temp.ctx!
+		ctx ??= this.temp.ctx!
 		ctx.setTransform(this.itransform)
 	}
 
 	/** go to absolute canvas coordinates (identity, or resetTransform) */
 	goAbs(ctx?: Ctx2D): void {
-		ctx = ctx || this.temp.ctx!
+		ctx ??= this.temp.ctx!
 		ctx.resetTransform()
 	}
 
