@@ -4,7 +4,6 @@ import { AbstractNode, Ctx2D, Ctx2DStyle, Vec2 } from "./abstract_node.ts"
  * default config fields are listed in {@link defaultDebugGridConfig}
 */
 export interface debugGridConfig {
-	ctx?: Ctx2D
 	interval_x?: [number, number]
 	interval_y?: [number, number]
 	/** gridline vertical and horizontal spacing */
@@ -25,7 +24,8 @@ export interface debugGridConfig {
 		 * `style.strokeStyle` => set axis-unit vectors' color
 		 * `style.fillStyle` => set origin dot fill color
 		*/
-		style: Ctx2DStyle
+		styleX: Ctx2DStyle
+		styleY: Ctx2DStyle
 		radius: number // origin dot, absolute size
 		arrow_length: number // unit vector arrow's length, absolute size
 	}
@@ -33,7 +33,6 @@ export interface debugGridConfig {
 
 /** default debugging grid. see {@link debugGridConfig} */
 export const defaultDebugGridConfig: debugGridConfig = {
-	ctx: undefined,
 	interval_x: undefined,
 	interval_y: undefined,
 	spacing: { x: 10, y: 10 },
@@ -44,10 +43,15 @@ export const defaultDebugGridConfig: debugGridConfig = {
 		fillStyle: "rgba(255, 192, 86, 0.75)",
 	},
 	origin: {
-		style: {
+		styleX: {
 			lineWidth: 5,
 			strokeStyle: "red",
 			fillStyle: "red",
+		},
+		styleY: {
+			lineWidth: 5,
+			strokeStyle: "green",
+			fillStyle: "green",
 		},
 		radius: 5,
 		arrow_length: 25,
@@ -57,8 +61,7 @@ export const defaultDebugGridConfig: debugGridConfig = {
 /** draw debugging stuff, such as grid lines <br>
  * your `node` must contain a canvas context in `n.temp.ctx`, or otherwise provided in `config` as `config.ctx`
 */
-export const drawDebug = (node: AbstractNode, config?: debugGridConfig) => {
-	const ctx = config?.ctx ?? node.temp.ctx!
+export const drawDebug = (node: AbstractNode, ctx: Ctx2D, config?: debugGridConfig) => {
 	ctx.save()
 	const
 		{ style, spacing, align, origin, flashing } = { ...defaultDebugGridConfig, ...config },
@@ -86,7 +89,7 @@ export const drawDebug = (node: AbstractNode, config?: debugGridConfig) => {
 	}
 	interval_x = [Math.min(...interval_x) - align_offset.x, Math.max(...interval_x) + align_offset.x]
 	interval_y = [Math.min(...interval_y) - align_offset.y, Math.max(...interval_y) + align_offset.y]
-	node.goIn()
+	node.goIn(ctx)
 	Object.assign(ctx, style)
 	if (flashing && Math.random() > 0.5) ctx.fillStyle = "rgba(255, 255, 255, 0.25)" // flashing effect
 	ctx.fillRect(i_xrange.min, i_yrange.min, i_xrange.max - i_xrange.min, i_yrange.max - i_yrange.min)
@@ -99,7 +102,7 @@ export const drawDebug = (node: AbstractNode, config?: debugGridConfig) => {
 		ctx.moveTo(interval_x[0], y)
 		ctx.lineTo(interval_x[1], y)
 	}
-	node.goAbs()
+	node.goAbs(ctx)
 	ctx.stroke()
 	const
 		global_origin = itransform.transformPoint({ x: 0, y: 0 }),
@@ -118,6 +121,40 @@ export const drawDebug = (node: AbstractNode, config?: debugGridConfig) => {
 	ctx.beginPath()
 	ctx.moveTo(global_u1.x, global_u1.y)
 	ctx.lineTo(0, 0)
+	ctx.lineTo(global_u2.x, global_u2.y)
+	ctx.stroke()
+	ctx.restore()
+}
+
+
+export const drawDebugOrigin = (node: AbstractNode, ctx: Ctx2D, origin_config?: debugGridConfig["origin"]) => {
+	ctx.save()
+	node.goSelf(ctx)
+	ctx.translate(-node.ox, -node.oy)
+	const
+		{ arrow_length, styleX, styleY } = { ...defaultDebugGridConfig.origin, ...origin_config },
+		ctx_origin_tr = ctx.getTransform(),
+		global_origin = ctx_origin_tr.transformPoint({ x: 0, y: 0 }),
+		origin_tr = new DOMMatrixReadOnly([1, 0, 0, 1, -global_origin.x, -global_origin.y]),
+		to_global_uvec = (u: DOMPoint): DOMPoint => {
+			const
+				global_u = ctx_origin_tr.transformPoint(u).matrixTransform(origin_tr),
+				global_u_length = (global_u.x ** 2 + global_u.y ** 2) ** 0.5,
+				scale = arrow_length / global_u_length
+			return global_u.matrixTransform({ a: scale, d: scale })
+		},
+		global_u1 = to_global_uvec({ x: 1, y: 0 }),
+		global_u2 = to_global_uvec({ x: 0, y: 1 })
+	node.goAbs(ctx)
+	ctx.translate(global_origin.x, global_origin.y)
+	Object.assign(ctx, styleX)
+	ctx.beginPath()
+	ctx.moveTo(0, 0)
+	ctx.lineTo(global_u1.x, global_u1.y)
+	ctx.stroke()
+	Object.assign(ctx, styleY)
+	ctx.beginPath()
+	ctx.moveTo(0, 0)
 	ctx.lineTo(global_u2.x, global_u2.y)
 	ctx.stroke()
 	ctx.restore()

@@ -3,36 +3,63 @@ import { AnyImageSource, constructImageBitmapSource } from "./deps.ts"
 
 
 export class Rect extends AbstractNode {
+	width: number = 0
+	height: number = 0
+
 	constructor(config?: {}) {
 		super()
 		this.style.fillStyle = "red"
 	}
 
-	drawSelf(ctx?: Ctx2D): void {
-		ctx ??= this.temp.ctx!
-		const
-			{ x, y, width, height, cx, cy } = this.orect,
-			[rx, ry] = [- width * cx, - height * cy]
-		this.goOut(ctx)
+	drawSelf(ctx: Ctx2D): void {
+		const { width, height } = this
 		ctx.fillStyle = this.style.fillStyle
-		ctx.fillRect(rx, ry, width, height)
+		ctx.fillRect(0, 0, width, height)
 	}
 
-	drawOverlay(ctx?: Ctx2D): void { return }
+	drawOverlay(ctx: Ctx2D): void { return }
 }
 
-const default_sprite_orect: OutRect = {
+export class RTLContainer extends AbstractNode {
+	width: number = 0
+	height: number = 0
+
+	constructor(config?: {}) {
+		super()
+	}
+
+	goSelf(ctx: Ctx2D) {
+		const { x, y, width, height, rot } = this
+		this.ox = width
+		this.oy = 0
+		ctx.translate(x, y)
+		ctx.rotate(rot)
+		ctx.translate(width, 0)
+		ctx.scale(-1, 0)
+		this.temp.self_tr = ctx.getTransform()
+	}
+
+	drawSelf(ctx: Ctx2D): void {
+		const { width, height } = this
+		ctx.fillStyle = this.style.fillStyle
+		ctx.fillRect(0, 0, width, height)
+	}
+
+	drawOverlay(ctx: Ctx2D): void { return }
+}
+
+const default_sprite_config = {
 	x: 0,
 	y: 0,
 	height: 1,
 	width: 1,
-	cx: 0.5,
-	cy: 0.5,
+	orx: 0.5,
+	ory: 0.5,
 	rot: 0.0,
 }
 
 export class Sprite extends AbstractNode {
-	bitmap!: ImageBitmap
+	bitmap?: ImageBitmap
 	source_loaded!: Promise<this>
 	private resolve_source_loaded!: () => void
 	private reject_source_loaded!: (reason?: any) => void
@@ -42,7 +69,25 @@ export class Sprite extends AbstractNode {
 			this.reject_source_loaded = reject
 		})
 	}
-	private draw_self_awaiting: boolean = false
+
+	declare width: number
+	declare height: number
+
+	get orx(): number {
+		return this.ox / this.width
+	}
+
+	set orx(value: number) {
+		this.ox = this.width * value
+	}
+
+	get ory(): number {
+		return this.oy / this.height
+	}
+
+	set ory(value: number) {
+		this.oy = this.height * value
+	}
 
 	setSource = (source_img: AnyImageSource) => {
 		this.reset_source_loaded()
@@ -58,24 +103,18 @@ export class Sprite extends AbstractNode {
 
 	constructor(config: Partial<OutRect> & { src?: AnyImageSource } = {}) {
 		super()
-		const { src, ...orect } = { ...default_sprite_orect, ...config }
-		this.orect = orect
+		const { src, orx, ory, ...rect } = { ...default_sprite_config, ...config }
+		Object.assign(this, rect)
+		this.orx = orx
+		this.ory = ory
 		if (src) this.setSource(src)
 		else this.reset_source_loaded()
 	}
 
-	async drawSelf(ctx: Ctx2D) {
-		if (this.draw_self_awaiting === false) {
-			this.draw_self_awaiting = true
-			await this.source_loaded
-			const
-				{ width, height, cx, cy } = this.orect,
-				[rx, ry] = [- width * cx, - height * cy]
-			this.goOut(ctx)
-			ctx.drawImage(this.bitmap, rx, ry, width, height)
-			this.draw_self_awaiting = false
-		}
+	drawSelf(ctx: Ctx2D) {
+		const { width, height } = this
+		if (this.bitmap) ctx.drawImage(this.bitmap, 0, 0, width, height)
 	}
 
-	drawOverlay(ctx?: Ctx2D): void { return }
+	drawOverlay(ctx: Ctx2D): void { return }
 }

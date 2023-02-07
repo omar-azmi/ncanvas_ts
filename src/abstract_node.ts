@@ -1,4 +1,4 @@
-import { drawDebug } from "./debug.ts"
+import { drawDebug, drawDebugOrigin } from "./debug.ts"
 import { MembersOf } from "./deps.ts"
 
 
@@ -82,12 +82,15 @@ export const getInTransform = (irect: InRect, orect: OutRect): InTransform => {
 
 
 export abstract class AbstractNode {
-	static #number_of_nodes: number = 0
+	static number_of_nodes: number = 0
 	id: string = ""
-	orect: OutRect = { x: 0, y: 0, width: 0, height: 0, cx: 0, cy: 0, rot: 0 }
-	irect: InRect = { x: 0, y: 0, width: undefined, height: undefined, rot: 0 }
-	otransform?: OutTransform
-	itransform?: InTransform
+	x: number = 0
+	y: number = 0
+	ox: number = 0
+	oy: number = 0
+	rot: number = 0
+	width?: number = 0
+	height?: number = 0
 	children: AbstractNode[] = []
 	flags: {
 		absStroke?: boolean
@@ -100,9 +103,9 @@ export abstract class AbstractNode {
 	temp: {
 		readonly rid: number // runtime unique id. this gets registered immediately during construction.
 		dirty: boolean // do transformations need to be recalculated?
-		ctx?: Ctx2D // fallback context2D
 		parent?: AbstractNode // this node's parent-node
 		debug?: boolean // whether or not to draw grid lines of inner coords
+		self_tr: DOMMatrixReadOnly
 	}
 
 	/** add child(ren) node(s) */
@@ -116,69 +119,64 @@ export abstract class AbstractNode {
 	 * or the {@link drawOverlay} method
 	*/
 	draw(ctx: Ctx2D, parent?: AbstractNode): void {
-		this.temp.ctx = ctx
 		const original_tr = ctx.getTransform()
 		if (parent) this.temp.parent = parent
-		if (this.temp.dirty /* or if parent exists and parent is dirty */) {
-			this.otransform = original_tr.multiply(getOutTransform(this.orect))
-			this.itransform = original_tr.multiply(getInTransform(this.irect, this.orect))
-			// this.temp.dirty = false
-		}
+		this.goSelf(ctx)
 		this.drawSelf(ctx)
-		if (this.temp.debug) drawDebug(this)
+		ctx.setTransform(original_tr)
+		if (this.temp.debug) drawDebugOrigin(this, ctx) //drawDebug(this,  ctx)
+		ctx.setTransform(original_tr)
 		this.drawChildren(ctx)
+		ctx.setTransform(original_tr)
 		this.drawOverlay(ctx)
 		ctx.setTransform(original_tr)
-		this.temp.ctx = undefined
 	}
 
 	/** preferably `goOut()` then customize as you please */
-	abstract drawSelf(ctx?: Ctx2D): void
+	abstract drawSelf(ctx: Ctx2D): void
 
-	drawChildren(ctx?: Ctx2D): void {
-		ctx ??= this.temp.ctx!
+	drawChildren(ctx: Ctx2D): void {
+		const original_tr = ctx.getTransform()
 		for (const child of this.children) {
-			this.goIn(ctx)
+			this.goSelf(ctx)
 			child.draw(ctx, this)
+			ctx.setTransform(original_tr)
 		}
 	}
 
 	/** preferably `goOut()` then customize as you please */
-	abstract drawOverlay(ctx?: Ctx2D): void
+	abstract drawOverlay(ctx: Ctx2D): void
 
-	/** go to outer `orect` coordinates */
-	goOut(ctx?: Ctx2D): void {
-		ctx ??= this.temp.ctx!
-		ctx.setTransform(this.otransform)
+	goSelf(ctx: Ctx2D): void {
+		const { x, y, ox, oy, rot } = this
+		ctx.translate(x, y)
+		ctx.rotate(rot)
+		ctx.translate(ox, oy)
+		this.temp.self_tr = ctx.getTransform()
 	}
 
-	/** go to innrer `irect` coordinates */
-	goIn(ctx?: Ctx2D): void {
-		ctx ??= this.temp.ctx!
-		ctx.setTransform(this.itransform)
+	goSelfInverse(ctx: Ctx2D): void {
+		const { x, y, ox, oy, rot } = this
+		ctx.translate(-ox, -oy)
+		ctx.rotate(-rot)
+		ctx.translate(-x, -y)
 	}
 
 	/** go to absolute canvas coordinates (identity, or resetTransform) */
-	goAbs(ctx?: Ctx2D): void {
-		ctx ??= this.temp.ctx!
+	goAbs(ctx: Ctx2D): void {
 		ctx.resetTransform()
 	}
 
-	/** get absolute 2d point relative to `orect` coordinates */
-	getAbsPointOut(point: DOMPointReadOnly): DOMPointReadOnly {
-		return this.otransform!.inverse().transformPoint(point)
-	}
-
-	/** get absolute 2d point relative to `irect` coordinates */
-	getAbsPointIn(point: DOMPointReadOnly): DOMPointReadOnly {
-		return this.itransform!.inverse().transformPoint(point)
+	/** get absolute 2d point relative to `self` coordinates */
+	getAbsPointOfSelf(point: DOMPointReadOnly): DOMPointReadOnly {
+		return this.temp.self_tr.inverse().transformPoint(point)
 	}
 
 	constructor() {
 		this.temp = {
-			rid: AbstractNode.#number_of_nodes,
+			rid: AbstractNode.number_of_nodes,
 			dirty: true,
 		}
-		AbstractNode.#number_of_nodes += 1
+		AbstractNode.number_of_nodes += 1
 	}
 }
